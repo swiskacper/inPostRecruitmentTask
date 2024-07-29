@@ -9,25 +9,31 @@ The ProductsApp API is a Spring Boot application that provides RESTful endpoints
 3. **Product Information**: Retrieval of product details.
 
 
-The application is quite simple. Some things can be improved, e.g. adding corutins/CompletableFutures to the contollers.
+The application is quite simple. Some things can be improved, e.g. adding corutins/CompletableFutures to the contollers or separate classes responsible for validation or adding more abstractions. However, I did not want to make this task too complicated.
 
-I hope that BASIC requirements and validations are fulfilled :) 
+I hope that BASIC requirements are fulfilled :) 
+
+## How to run
+1.
+```
+docker pull swiskacper/inpost_recrutiment_task
+```
+
+2. 
+```
+docker run -p 8080:8080 swiskacper/inpost_recrutiment_task
+```
+
+
 ## Endpoints
 
 ### Discount Policy Management
-
-- **Get All Discount Policies**
-    - **Description**: Retrieves a list of all discount policies.
-    - **HTTP Request**:
-      ```http
-      GET /api/discount-policies
-      ```
 
 - **Add New Discount Policy**
     - **Description**: Adds a new discount policy.
     - **HTTP Request**:
       ```http
-      POST /api/discount-policies
+      POST http://localhost:8080/api/discount-policies
       Content-Type: application/json
   
       {
@@ -42,14 +48,14 @@ I hope that BASIC requirements and validations are fulfilled :)
       }
       ```
 
-    OR different type of discount
+  OR different type of discount
     - **HTTP Request**:
       ```http
-      POST /api/discount-policies
+      POST http://localhost:8080/api/discount-policies
       Content-Type: application/json
   
       {
-          "name": "Policy 3",
+          "name": "Policy 32",
           "discountType": "QUANTITY_BASED",
           "content": [
         {
@@ -61,14 +67,20 @@ I hope that BASIC requirements and validations are fulfilled :)
             "discount": 0.15
         }
   ]
-      }
+  }
+  
+- **Get All Discount Policies**
+    - **Description**: Retrieves a list of all discount policies.
+    - **HTTP Request**:
+      ```http
+      GET http://localhost:8080/api/discount-policies
       ```
 
 - **Update Discount Policy by ID**
     - **Description**: Updates an existing discount policy by ID.
     - **HTTP Request**:
       ```http
-      PUT /api/discount-policies/{id}
+      PUT http://localhost:8080/api/discount-policies/{id}
       Content-Type: application/json
   
       {
@@ -96,7 +108,7 @@ I hope that BASIC requirements and validations are fulfilled :)
     - **Description**: Calculates the total price of an order applying the specified discount policy.
     - **HTTP Request**:
       ```http
-      POST /api/orders/calculate-total-price
+      POST http://localhost:8080/api/orders/calculate-total-price
       Content-Type: application/json
   
       {
@@ -109,18 +121,16 @@ I hope that BASIC requirements and validations are fulfilled :)
 ### Product Information
 
 - **Get All Products**
-    - **Description**: Retrieves a list of all available products.
+    - **Description**: Retrieves a list of all available products. Products are hard coded.
     - **HTTP Request**:
       ```http
-      GET /api/products
+      GET http://localhost:8080/api/products
       ```
 
 - **Get Product by ID**
     - **Description**: Retrieves details of a specific product by ID.
     - **HTTP Request**:
       ```http
-      GET /api/products/{id}
+      GET http://localhost:8080/api/products/{id}
       ```
-
-
-
+      
