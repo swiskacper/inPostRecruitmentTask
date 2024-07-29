@@ -3,8 +3,7 @@ package com.productsapp.api.controller
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.productsapp.api.model.DiscountPolicyAddDto
 import com.productsapp.api.model.DiscountPolicyContentAddDto
-import com.productsapp.api.model.OrderCalculationRequestDto
-import com.productsapp.api.model.OrderCalculationResultDto
+import org.junit.jupiter.params.provider.Arguments
 import com.productsapp.domain.model.DiscountPolicy
 import com.productsapp.domain.model.DiscountPolicyContent
 import com.productsapp.domain.model.DiscountType
@@ -13,6 +12,8 @@ import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.MethodSource
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
@@ -21,6 +22,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.*
+import java.util.stream.Stream
 
 @ExtendWith(SpringExtension::class)
 @SpringBootTest
@@ -95,63 +97,6 @@ class DiscountPolicyControllerIntegrationTest {
     }
 
     @Test
-    fun testAddInvalidDiscountPolicy() {
-        val policy = DiscountPolicyAddDto(
-            name = null,
-            discountType = DiscountType.FIXED_PERCENTAGE,
-            content = listOf(DiscountPolicyContentAddDto(null, 0.15))
-        )
-        val policyJson = objectMapper.writeValueAsString(policy)
-
-        val result = mockMvc.perform(post("/api/discount-policies")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(policyJson))
-            .andExpect(status().isBadRequest)
-            .andReturn()
-
-        val responseContent = result.response.contentAsString
-        assertTrue(responseContent.contains("Required name for discount policy"))
-    }
-
-    @Test
-    fun testAddDiscountPolicyWithInvalidDiscountValue() {
-        val policy = DiscountPolicyAddDto(
-            name = "Invalid Discount",
-            discountType = DiscountType.FIXED_PERCENTAGE,
-            content = listOf(DiscountPolicyContentAddDto(null, 1.5))
-        )
-        val policyJson = objectMapper.writeValueAsString(policy)
-
-        val result = mockMvc.perform(post("/api/discount-policies")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(policyJson))
-            .andExpect(status().isBadRequest)
-            .andReturn()
-
-        val responseContent = result.response.contentAsString
-        assertTrue(responseContent.contains("Discount must be between 0 and 1 for all policies"))
-    }
-
-    @Test
-    fun testAddDiscountPolicyWithNegativeQuantity() {
-        val policy = DiscountPolicyAddDto(
-            name = "Negative Quantity",
-            discountType = DiscountType.QUANTITY_BASED,
-            content = listOf(DiscountPolicyContentAddDto(-1, 0.1))
-        )
-        val policyJson = objectMapper.writeValueAsString(policy)
-
-        val result = mockMvc.perform(post("/api/discount-policies")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(policyJson))
-            .andExpect(status().isBadRequest)
-            .andReturn()
-
-        val responseContent = result.response.contentAsString
-        assertTrue(responseContent.contains("Required positive quantityGreaterThan for quantity based discount policy"))
-    }
-
-    @Test
     fun testAddDuplicateDiscountPolicyName() {
         val policy = DiscountPolicyAddDto(
             name = "Policy 1", // Duplicate name
@@ -190,6 +135,21 @@ class DiscountPolicyControllerIntegrationTest {
         assertEquals("Updated Policy", updatedPolicy.name)
     }
 
+    @ParameterizedTest
+    @MethodSource("provideInvalidDiscountPolicies")
+    fun testAddInvalidDiscountPolicy(policy: DiscountPolicyAddDto, expectedErrorMessage: String) {
+        val policyJson = objectMapper.writeValueAsString(policy)
+
+        val result = mockMvc.perform(post("/api/discount-policies")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(policyJson))
+            .andExpect(status().isBadRequest)
+            .andReturn()
+
+        val responseContent = result.response.contentAsString
+        assertTrue(responseContent.contains(expectedErrorMessage))
+    }
+
     @Test
     fun testUpdateNonExistentDiscountPolicy() {
         val policy = DiscountPolicyAddDto(
@@ -203,5 +163,38 @@ class DiscountPolicyControllerIntegrationTest {
             .contentType(MediaType.APPLICATION_JSON)
             .content(policyJson))
             .andExpect(status().isNotFound)
+    }
+
+
+    companion object {
+        @JvmStatic
+        fun provideInvalidDiscountPolicies(): Stream<Arguments> {
+            return Stream.of(
+                Arguments.of(
+                    DiscountPolicyAddDto(
+                        name = null,
+                        discountType = DiscountType.FIXED_PERCENTAGE,
+                        content = listOf(DiscountPolicyContentAddDto(null, 0.15))
+                    ),
+                    "Required name for discount policy"
+                ),
+                Arguments.of(
+                    DiscountPolicyAddDto(
+                        name = "Invalid Discount",
+                        discountType = DiscountType.FIXED_PERCENTAGE,
+                        content = listOf(DiscountPolicyContentAddDto(null, 1.5))
+                    ),
+                    "Discount must be between 0 and 1 for all policies"
+                ),
+                Arguments.of(
+                    DiscountPolicyAddDto(
+                        name = "Negative Quantity",
+                        discountType = DiscountType.QUANTITY_BASED,
+                        content = listOf(DiscountPolicyContentAddDto(-1, 0.1))
+                    ),
+                    "Required positive quantityGreaterThan for quantity based discount policy"
+                )
+            )
+        }
     }
 }

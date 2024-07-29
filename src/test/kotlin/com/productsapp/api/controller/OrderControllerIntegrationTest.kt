@@ -13,7 +13,9 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.CsvSource
+import org.junit.jupiter.params.provider.MethodSource
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc
 import org.springframework.boot.test.context.SpringBootTest
@@ -22,6 +24,7 @@ import org.springframework.test.context.junit.jupiter.SpringExtension
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import java.util.stream.Stream
 
 @ExtendWith(SpringExtension::class)
 @SpringBootTest
@@ -87,64 +90,6 @@ class OrderControllerIntegrationTest {
         assertEquals(4573.8, response.totalPrice, 0.01)
     }
 
-
-    @Test
-    fun testCalculateTotalPriceWithoutDiscountPolicy() {
-        val request = OrderCalculationRequestDto(
-            productId = "550e8400-e29b-41d4-a716-446655440000",
-            quantity = 2,
-            discountPolicyId = null
-        )
-        val requestJson = objectMapper.writeValueAsString(request)
-
-        val result = mockMvc.perform(post("/api/orders/calculate-total-price")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(requestJson))
-            .andExpect(status().isBadRequest)
-            .andReturn()
-
-        val responseContent = result.response.contentAsString
-        assertTrue(responseContent.contains("Discount id must be provided"))
-    }
-
-    @Test
-    fun testCalculateTotalPriceWithoutProductId() {
-        val request = OrderCalculationRequestDto(
-            productId = null,
-            quantity = 2,
-            discountPolicyId = "1"
-        )
-        val requestJson = objectMapper.writeValueAsString(request)
-
-        val result = mockMvc.perform(post("/api/orders/calculate-total-price")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(requestJson))
-            .andExpect(status().isBadRequest)
-            .andReturn()
-
-        val responseContent = result.response.contentAsString
-        assertTrue(responseContent.contains("Product id must be provided"))
-    }
-
-    @Test
-    fun testCalculateTotalPriceWithoutQuantity() {
-        val request = OrderCalculationRequestDto(
-            productId = "550e8400-e29b-41d4-a716-446655440000",
-            quantity = null,
-            discountPolicyId = "1"
-        )
-        val requestJson = objectMapper.writeValueAsString(request)
-
-        val result = mockMvc.perform(post("/api/orders/calculate-total-price")
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(requestJson))
-            .andExpect(status().isBadRequest)
-            .andReturn()
-
-        val responseContent = result.response.contentAsString
-        assertTrue(responseContent.contains("Quantity must be provided"))
-    }
-
     @ParameterizedTest
     @CsvSource(
         "1, 2541.0",
@@ -168,5 +113,42 @@ class OrderControllerIntegrationTest {
         val responseContent = result.response.contentAsString
         val response = objectMapper.readValue(responseContent, OrderCalculationResultDto::class.java)
         assertEquals(expectedTotalPrice, response.totalPrice, 0.01)
+    }
+
+    @ParameterizedTest
+    @MethodSource("provideInvalidOrderRequests")
+    fun testCalculateTotalPriceWithInvalidInput(productId: String?, quantity: Int?, discountPolicyId: String?, expectedErrorMessage: String) {
+        val request = OrderCalculationRequestDto(
+            productId = productId,
+            quantity = quantity,
+            discountPolicyId = discountPolicyId
+        )
+        val requestJson = objectMapper.writeValueAsString(request)
+
+        val result = mockMvc.perform(post("/api/orders/calculate-total-price")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(requestJson))
+            .andExpect(status().isBadRequest)
+            .andReturn()
+
+        val responseContent = result.response.contentAsString
+        assertTrue(responseContent.contains(expectedErrorMessage))
+    }
+
+    companion object {
+        @JvmStatic
+        fun provideInvalidOrderRequests(): Stream<Arguments> {
+            return Stream.of(
+                Arguments.of(
+                    "550e8400-e29b-41d4-a716-446655440000", 2, null, "Discount id must be provided"
+                ),
+                Arguments.of(
+                    null, 2, "1", "Product id must be provided"
+                ),
+                Arguments.of(
+                    "550e8400-e29b-41d4-a716-446655440000", null, "1", "Quantity must be provided"
+                )
+            )
+        }
     }
 }
