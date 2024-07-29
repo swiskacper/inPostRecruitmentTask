@@ -2,7 +2,7 @@
 
 ## Overview
 
-The ProductsApp API is a Spring Boot application that provides RESTful endpoints for managing discount policies, calculating order prices, and retrieving product information. The API includes the following functionalities:
+This project is a Spring Boot application that provides RESTful endpoints for managing discount policies, calculating order prices, and retrieving product information. The API includes the following functionalities:
 
 1. **Discount Policy Management**: CRUD operations for discount policies.
 2. **Order Price Calculation**: Calculation of total order prices with discounts.
