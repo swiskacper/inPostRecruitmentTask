@@ -25,6 +25,9 @@ class OrderCalculationService(
         if (calculation.quantity == null) {
             throw ValidationException("Quantity must be provided")
         }
+        if (calculation.quantity <= 0) {
+            throw ValidationException("Quantity must be bigger than 0")
+        }
 
         val discountPolicy = discountPolicyRepository.getById(calculation.discountPolicyId)
             ?: throw ValidationException("Discount policy not found")
@@ -43,16 +46,13 @@ class OrderCalculationService(
     }
 
     fun calculateTotalPriceWithDiscount(product: Product, quantity: Int, discountPolicy: DiscountPolicy): Double {
-        var discount: Double
-        if (discountPolicy.discountType == DiscountType.FIXED_PERCENTAGE) {
-            discountPolicy.content[0].let {
-                discount = it.discount
-            }
+        val discount = if (discountPolicy.discountType == DiscountType.FIXED_PERCENTAGE) {
+            discountPolicy.content[0].discount
         } else {
-            discount = discountPolicy.content
+            discountPolicy.content
                 .sortedByDescending { it.quantityGreaterThanOrEqual!! }
                 .firstOrNull { quantity >= it.quantityGreaterThanOrEqual!! }
-                ?.discount ?: discountPolicy.content.last().discount
+                ?.discount ?: 0.0
         }
         return product.price * quantity * (1 - discount)
     }

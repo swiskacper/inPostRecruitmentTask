@@ -162,4 +162,24 @@ class OrderControllerIntegrationTest {
         val responseContent = result.response.contentAsString
         assertTrue(responseContent.contains("Quantity must be provided"))
     }
+
+    @Test
+    fun testCalculateTotalPriceWithQuantityBasedDiscountWhenThereIsNotEnoughProducts() {
+        val request = OrderCalculationRequestDto(
+            productId = "550e8400-e29b-41d4-a716-446655440000",
+            quantity = 1,
+            discountPolicyId = "2"
+        )
+        val requestJson = objectMapper.writeValueAsString(request)
+
+        val result = mockMvc.perform(post("/api/orders/calculate-total-price")
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(requestJson))
+            .andExpect(status().isOk)
+            .andReturn()
+
+        val responseContent = result.response.contentAsString
+        val response = objectMapper.readValue(responseContent, OrderCalculationResultDto::class.java)
+        assertEquals(2541.0, response.totalPrice, 0.01)
+    }
 }
